@@ -1,106 +1,77 @@
-import pygame
-import sys
-import random
+import sys, pygame
+from modules.snake import Snake, BLOCK_SIZE
+from modules.food  import Food
 
-# Инициализация Pygame
-pygame.init()
-
-# Константы
+# Параметры окна
 WIDTH, HEIGHT = 600, 400
-BLOCK  = 20
-FPS    = 10
+FPS = 10
+BG_COLOR = (0,0,0)
 
-# Цвета
-WHITE = (255,255,255)
-BLACK = (  0,  0,  0)
-RED   = (255,  0,  0)
-GREEN = (  0,255,  0)
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Модульная Змейка 🐍")
+    clock = pygame.time.Clock()
 
-# Настройка окна
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-clock  = pygame.time.Clock()
-pygame.display.set_caption("Snake Game")
-
-# Функция рисования змейки
-def draw_snake(snake_blocks):
-    for block in snake_blocks:
-        pygame.draw.rect(screen, GREEN, pygame.Rect(block[0], block[1], BLOCK, BLOCK))
-
-# Основной игровой цикл
-def game_loop():
-    # Начальные параметры змейки
-    x = WIDTH // 2
-    y = HEIGHT // 2
-    dx, dy = 0, 0
-    snake = [[x, y]]
-    snake_length = 1
-
-    # Случайная еда
-    food_x = random.randrange(0, WIDTH, BLOCK)
-    food_y = random.randrange(0, HEIGHT, BLOCK)
-
+    snake = Snake(start_pos=(WIDTH//2, HEIGHT//2))
+    food  = Food(screen_width=WIDTH, screen_height=HEIGHT)
     score = 0
-    font = pygame.font.SysFont(None, 36)
+    font  = pygame.font.SysFont(None, 30)
 
-    while True:
-        # Обработка событий
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and dy == 0:
-                    dx, dy = 0, -BLOCK
-                elif event.key == pygame.K_DOWN and dy == 0:
-                    dx, dy = 0, BLOCK
-                elif event.key == pygame.K_LEFT and dx == 0:
-                    dx, dy = -BLOCK, 0
-                elif event.key == pygame.K_RIGHT and dx == 0:
-                    dx, dy = BLOCK, 0
+    running = True
+    while running:
+        # 1) События
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                running = False
+            elif e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_UP:
+                    snake.set_direction((0, -BLOCK_SIZE))
+                elif e.key == pygame.K_DOWN:
+                    snake.set_direction((0, BLOCK_SIZE))
+                elif e.key == pygame.K_LEFT:
+                    snake.set_direction((-BLOCK_SIZE, 0))
+                elif e.key == pygame.K_RIGHT:
+                    snake.set_direction((BLOCK_SIZE, 0))
 
-        # Движение змейки
-        x += dx
-        y += dy
+        # 2) Логика
+        snake.move()
+        head = snake.get_head_pos()
 
         # Проверка границ
-        if x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT:
-            break  # Игра окончена
+        if not (0 <= head[0] < WIDTH and 0 <= head[1] < HEIGHT):
+            break
 
-        # Расширяем тело
-        snake.insert(0, [x, y])
-        if len(snake) > snake_length:
-            snake.pop()
-
-        # Проверка столкновения с собой
-        if [x, y] in snake[1:]:
-            break  # Игра окончена
-
-        # Съедание еды
-        if x == food_x and y == food_y:
+        # Съели еду?
+        if head == food.position:
             score += 1
-            snake_length += 1
-            food_x = random.randrange(0, WIDTH, BLOCK)
-            food_y = random.randrange(0, HEIGHT, BLOCK)
+            snake.grow()
+            food.randomize()
 
-        # Отрисовка
-        screen.fill(BLACK)
-        draw_snake(snake)
-        pygame.draw.rect(screen, RED, pygame.Rect(food_x, food_y, BLOCK, BLOCK))
+        # Само­столкновение
+        if snake.collides_with_self():
+            break
 
-        # Вывод счета
-        score_surf = font.render(f"Score: {score}", True, WHITE)
-        screen.blit(score_surf, (10, 10))
+        # 3) Отрисовка
+        screen.fill(BG_COLOR)
+        snake.draw(screen)
+        food.draw(screen)
+        score_surf = font.render(f"Score: {score}", True, (255,255,255))
+        screen.blit(score_surf, (10,10))
 
         pygame.display.flip()
         clock.tick(FPS)
 
-    # Игра окончена — вывод финального счета
-    msg = font.render(f"Game Over! Score: {score}", True, RED)
-    screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - msg.get_height()//2))
+    # Game Over
+    msg = font.render(f"Game Over! Score: {score}", True, (255,50,50))
+    screen.blit(
+        msg,
+        (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - msg.get_height()//2)
+    )
     pygame.display.flip()
-    pygame.time.delay(3000)
+    pygame.time.delay(2000)
     pygame.quit()
     sys.exit()
 
-if __name__ == "__main__":
-    game_loop()
+if __name__ == '__main__':
+    main()
