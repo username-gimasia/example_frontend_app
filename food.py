@@ -1,6 +1,9 @@
 import pygame, random
 from modules.snake import BLOCK_SIZE
 
+-------------------------------------------
+
+
 FOOD_COLOR = (200, 0, 0)
 
 class Food:
